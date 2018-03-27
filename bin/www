@@ -1,0 +1,127 @@
+#!/usr/bin/env node
+/**
+ * 程序入口文件
+ *
+ * @author    Jack Yang
+ * @copyright Copyright (c) 2016
+ *
+ */
+
+
+/**
+ * Module dependencies.
+ */
+
+var app     = require('../app');
+var debug   = require('debug')('ccms-sever:server');
+var colors  = require('colors');
+var logger  = require('mm-node-logger')(module);
+var config  = require('../config/base.config.js');
+var pkg     = require('../package.json');
+var mongodb = require('../common/db/mongoose.js');
+var redis   = require('../common/db/redis.js');
+
+var http = require('http');
+
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || config.server.port || '3000');
+app.set('port', port);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+// Start up the server
+app.listen(port, function () {
+    var serverBanner = ['',
+        '*************************************'.yellow + ' START SERVER  '.yellow + '********************************************'.yellow,
+        '*',
+        '* ' + pkg.description ,
+        '* @version  : ' + pkg.version,
+        '* @author   : '  + pkg.author.name,
+        '* @copyright: ' + new Date().getFullYear(),
+        '*',
+        '*' + ' Start Express on port: '.yellow + config.server.port  + ' - with environment: '.yellow + config.environment,
+        '*' + ' Connect Redis on     : '.yellow     + config.redis.host   + '    port: '.yellow  + config.redis.port,
+        '*' + ' Connect Mongodb on   : '.yellow   + config.mongodb.dbURI ,
+        '*',
+        '*************************************************************************************************'.yellow,
+        ''].join('\n');
+    logger.info(serverBanner);
+            
+	  // Initialize redis/mongoose
+	  redis.init();
+	  mongodb.init();
+});
+
+server.on('error', onError);
+server.on('listening', onListening);
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
